@@ -1,0 +1,3 @@
+com\weather\central\CentralStation.class
+com\weather\central\WeatherReadingDto.class
+com\weather\central\WeatherReadingDao.class
