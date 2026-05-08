@@ -25,7 +25,7 @@ public class CentralStation {
     private static final String TOPIC = "weather-readings";
     private static final int BATCH_SIZE = 5_000;
     private static final Duration POLL_TIMEOUT = Duration.ofMillis(500);
-    private static final Duration MAX_BUFFER_AGE = Duration.ofMinutes(5);
+    private static final Duration MAX_BUFFER_AGE = Duration.ofMinutes(12);
 
     public static void main(String[] args) {
 
