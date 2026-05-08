@@ -23,8 +23,8 @@ public class WeatherStation {
     public static void main(String[] args) throws InterruptedException {
 
         // 1) Read config from environment variables (with sane defaults)
-       long stationId = parseStationId(
-        System.getenv().getOrDefault("STATION_ID", "1"));
+        long stationId = parseStationId(
+                System.getenv().getOrDefault("STATION_ID", "1"));
         String bootstrap = System.getenv()
                 .getOrDefault("KAFKA_BOOTSTRAP_SERVERS", "localhost:29092");
 
@@ -38,7 +38,6 @@ public class WeatherStation {
         props.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
                 StringSerializer.class.getName());
         props.setProperty(ProducerConfig.CLIENT_ID_CONFIG, "station-" + stationId);
-        // Reliability / batching tuning (fine to leave at defaults for this project):
         props.setProperty(ProducerConfig.ACKS_CONFIG, "all");
         props.setProperty(ProducerConfig.LINGER_MS_CONFIG, "10");
 
@@ -49,10 +48,9 @@ public class WeatherStation {
         // 3) Producer is AutoCloseable -> try-with-resources flushes & closes on exit
         try (KafkaProducer<String, String> producer = new KafkaProducer<>(props)) {
 
-            // Graceful shutdown on Ctrl+C
-            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                log.info("Shutdown signal received — closing producer.");
-            }));
+            // Graceful shutdown on Ctrl+C / SIGTERM
+            Runtime.getRuntime().addShutdownHook(new Thread(() ->
+                    log.info("Shutdown signal received — closing producer.")));
 
             while (true) {
                 // 10% drop — and per spec, sNo only advances when we actually send
@@ -88,6 +86,20 @@ public class WeatherStation {
     }
 
     /**
+     * Turn the STATION_ID env var into a Long.
+     * - Plain number ("1", "7"): used as-is. (Local dev.)
+     * - StatefulSet pod name ("weather-station-3"): take the part after the last dash, add 1
+     *   so we get 1..10 instead of 0..9.
+     */
+    private static long parseStationId(String raw) {
+        try {
+            return Long.parseLong(raw);
+        } catch (NumberFormatException ignored) {}
+
+        return Long.parseLong(raw.substring(raw.lastIndexOf('-') + 1)) + 1;
+    }
+
+    /**
      * Build the exact JSON shape the spec requires:
      * { station_id, s_no, battery_status, status_timestamp, weather: { humidity, temperature, wind_speed } }
      */
@@ -104,15 +116,5 @@ public class WeatherStation {
         weather.put("wind_speed", r.windSpeed());
 
         return root.toString();
-    }
-}
-private static long parseStationId(String raw) {
-    try {
-        return Long.parseLong(raw);
-    } catch (NumberFormatException e) {
-        // Pod names like "weather-station-7c4d9f-x8k2p" — derive a stable positive Long
-        // from the trailing pod-hash so each pod has a unique numeric ID.
-        long h = Math.abs((long) raw.hashCode());
-        return h == 0 ? 1 : h;
     }
 }

@@ -1,8 +1,23 @@
+# Headless Service — required by every StatefulSet. We don't use its DNS,
+# but K8s requires it exists.
+apiVersion: v1
+kind: Service
+metadata:
+  name: weather-station-svc
+spec:
+  clusterIP: None
+  selector:
+    app: weather-station
+  ports:
+    - port: 80
+      name: placeholder
+---
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: weather-station
 spec:
+  serviceName: weather-station-svc
   replicas: 10
   selector:
     matchLabels:
@@ -17,7 +32,7 @@ spec:
           image: weather-station:1.0
           imagePullPolicy: Never
           env:
-            # Use the pod name as STATION_ID — unique per pod, stable for its lifetime
+            # Pod names will be weather-station-0 through weather-station-9
             - name: POD_NAME
               valueFrom:
                 fieldRef:
