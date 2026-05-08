@@ -23,8 +23,8 @@ public class WeatherStation {
     public static void main(String[] args) throws InterruptedException {
 
         // 1) Read config from environment variables (with sane defaults)
-        long stationId = Long.parseLong(
-                System.getenv().getOrDefault("STATION_ID", "1"));
+       long stationId = parseStationId(
+        System.getenv().getOrDefault("STATION_ID", "1"));
         String bootstrap = System.getenv()
                 .getOrDefault("KAFKA_BOOTSTRAP_SERVERS", "localhost:29092");
 
@@ -104,5 +104,15 @@ public class WeatherStation {
         weather.put("wind_speed", r.windSpeed());
 
         return root.toString();
+    }
+}
+private static long parseStationId(String raw) {
+    try {
+        return Long.parseLong(raw);
+    } catch (NumberFormatException e) {
+        // Pod names like "weather-station-7c4d9f-x8k2p" — derive a stable positive Long
+        // from the trailing pod-hash so each pod has a unique numeric ID.
+        long h = Math.abs((long) raw.hashCode());
+        return h == 0 ? 1 : h;
     }
 }

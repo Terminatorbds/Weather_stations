@@ -1,4 +1,45 @@
 services:
+  weather-station-1:
+    image: weather-station:1.0
+    container_name: weather-station-1
+    environment:
+      STATION_ID: 1
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      - kafka
+    restart: on-failure
+
+  weather-station-2:
+    image: weather-station:1.0
+    container_name: weather-station-2
+    environment:
+      STATION_ID: 2
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      - kafka
+    restart: on-failure
+
+  rain-processor:
+    image: kafka-processor:1.0
+    container_name: rain-processor
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      - kafka
+    restart: on-failure
+
+  central-station:
+    image: central-station:1.0
+    container_name: central-station
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      DB_URL: jdbc:postgresql://postgres:5432/weather_db
+      DB_USER: weather_user
+      DB_PASSWORD: weather_pass
+    depends_on:
+      - kafka
+      - postgres
+    restart: on-failure
 
   kafka:
     image: confluentinc/cp-kafka:7.7.1
